@@ -1,9 +1,10 @@
+from enum import Enum
 
 class EndoError(Exception):
     """Base class for exception in this module."""
     pass
 
-class EndoVerbalParseError(EndoError):
+class EndoParseError(EndoError):
     """Exception raised if parsing error occurs for verbal eprime files.
 
     Attributes:
@@ -11,19 +12,6 @@ class EndoVerbalParseError(EndoError):
     """
     def __init__(self, Message):
         self.Message = Message
-
-class EndoParticipantError(EndoError):
-    """Exception raised for mismatching file and input subjects.
-
-    Attributes:
-        filesubject -- found subject name for file
-        inputsubject -- input subject name
-        message -- explanation of the error
-    """
-    def __init__(self, filesubject, inputsubject, message):
-        self.filesubject = filesubject
-        self.inputsubject = inputsubject
-        self.message = message
 
 class EndoTransitionError(EndoError):
     """Raised when an operation attempts a state transistion that is not 
@@ -40,80 +28,47 @@ class EndoTransitionError(EndoError):
         self.FoundStr = FoundStr
         self.ExpectedStr = ExpectedStr
 
-class EndoPeriodDurationError(EndoError):
-    """Exception raised when period durations within text file do not match
-    expected durations.
+class VerbalMemState(Enum):
+    Stim = 0
+    Abst = 1
+    Case = 2
+    Onset = 3
+    Rt = 4
+    Resp = 5
+    Cresp = 6
+    Dur = 7
+    FixOnset = 8
+    RunLists = 9
+    TrialNum = 10  # only used for indexing trials
 
-    Attributes:
-        expecteddurations -- the expected durations
-        founddurations -- the durations parsed from the text file
-        message -- explanation of why this error is raised
-    """
-    def __init__(self, expecteddurations, founddurations, message):
-        self.expecteddurations = expecteddurations
-        self.founddurations = founddurations
-        self.message = message
-
-class EndoBaselineTimeError(EndoError):
-    """Exception raised when no baseline time is found.
-
-    Attributes:
-        message -- explanation of why this error is raised
-    """
-    def __init__(self, message):
-        self.message = message
+class EmotionalState(Enum):
+    ImageDis = 0    # str
+    ImageAns = 1    # str
+    ImageOnset = 2  # float
+    ImageDur = 3    # float
+    ImageAcc = 4    # int
+    ImageRt = 5     # float
+    ImageResp = 6   # int
+    ImageCrep = 7   # int
+    DelayOnset = 8  # float
+    DelayDur = 9    # float
     
 
 def ParseVerbalMem(FileName, Participant):
     TruePeriodDurations = (32000, 44000, 44000, 44000, 44000, 32000)
-    STATE_STIM = "myStimulus"
-    STATE_ABST = "conAbst"
-    STATE_CASE = "myCase"
-    STATE_ONSET = "Probe.OnsetTime"
-    STATE_RT = "Probe.RT:"
-    STATE_RESP = "Probe.RESP"
-    STATE_CRESP = "Probe.CRESP"
-    STATE_DUR = "Probe.OnsetToOnsetTime"
-    STATE_FIX_ONSET = "fixation.OnsetTime"
-    STATE_RUN_LISTS = "Run1Lists:"
-    State = {
-        STATE_STIM: 0,          # nmeonic for stimulus
-        STATE_ABST: 1,          # signals concrete or abstract word
-        STATE_CASE: 2,          # signals upper or lower case
-        STATE_ONSET: 3,         # probe onset time
-        STATE_RT: 4,            # participant reaction time for probe
-        STATE_RESP: 5,          # participatn response
-        STATE_CRESP: 6,         # indicates correct response
-        STATE_DUR: 7,           # indicates probe duration
-        STATE_FIX_ONSET: 8,     # fixation onset time
-        STATE_RUN_LISTS: 9      # indicates run list
-    }
-    StateNames = dict(zip(State.values(), State.keys()))
 
-    TRIALS_STIM = "Stimulus"
-    TRIALS_IDEA = "Idea"
-    TRIALS_CASE = "Case"
-    TRIALS_ONSET = "ProbeOnsetTime"
-    TRIALS_RT = "ProbeRT"
-    TRIALS_RESP = "ProbeRESP"
-    TRIALS_CRESP = "ProbeCRESP"
-    TRIALS_DUR = "ProbeDuration"
-    TRIALS_FIX_ONSET = "FixationOnsetTime"
-    TRIALS_BLOCK_NUM = "BlockNumber"
-    TRIALS_TRIAL_NUM = "TrialNum"
-    Trials = {
-        TRIALS_STIM: [],
-        TRIALS_IDEA: [],
-        TRIALS_CASE: [],
-        TRIALS_ONSET: [],
-        TRIALS_RT: [],
-        TRIALS_RESP: [],
-        TRIALS_CRESP: [],
-        TRIALS_DUR: [],
-        TRIALS_FIX_ONSET: [],
-        TRIALS_BLOCK_NUM: [],
-        TRIALS_TRIAL_NUM: []
-    }
+    DataText = ["myStimulus:",
+        "conAbst:",
+        "myCase:",
+        "Probe.OnsetTime:",
+        "Probe.RT:",
+        "Probe.RESP:",
+        "Probe.CRESP:",
+        "Probe.OnsetToOnsetTime:",
+        "fixation.OnsetTime:",
+        "Run1Lists:"]
+
+    Trials = [[] for _ in range(VerbalMemState.TrialNum.value + 1)]
 
     # read all lines
     Lines = []
@@ -128,7 +83,7 @@ def ParseVerbalMem(FileName, Participant):
             FileParticipant = Line[ColIdx+1:].strip().lstrip('0')
             break
     if FileParticipant != Participant:
-        raise EndoVerbalParseError(
+        raise EndoParseError(
             " * * * PARTICIPANT MISMATCH * * *\n" +
             "File Participant: {}".format(FileParticipant))
 
@@ -139,7 +94,7 @@ def ParseVerbalMem(FileName, Participant):
             ColIdx = Line.find(':')
             PeriodDurations.append(int(Line[ColIdx+1:].strip()))
     if PeriodDurations != list(TruePeriodDurations):
-        raise EndoVerbalParseError(
+        raise EndoParseError(
             " * * * UNEXPECTED PERIOD DURATIONS * * *\n" +
             "True period durations:     {}\n".format(TruePeriodDurations) +
             "Expected period durations: {}".format(PeriodDurations))
@@ -154,87 +109,109 @@ def ParseVerbalMem(FileName, Participant):
     if BaselineTime == -1:
         raise EndoVerbelParseError(" * * * myDisDaqs.OnsetTime NOT FOUND * * *")
 
-    CurState = State[STATE_STIM]
-    BlockTrialCounter = 0
-    LineNo = 1
+    # grab block lines  
+    BlockLines = []
+    for LineNo, Line in enumerate(Lines):
+        if "Run1Lists:" in Line:
+            BlockLines.append((Line, LineNo+1))
+    if not BlockLines:
+        raise(EndoParseError("* * * BlockLines list EMPTY * * *"))
+
+    # grab data lines
+    DataLines = []
+    BlockIndex = 0
+    for LineNo, Line in enumerate(Lines):
+        for TextNo, OneText in enumerate(DataText):
+            if OneText in Line:
+                if TextNo != VerbalMemState.RunLists.value:
+                    DataLines.append((Line, LineNo+1))
+                else:
+                    BlockIndex += 1
+                if TextNo == VerbalMemState.FixOnset.value:
+                    DataLines.append(BlockLines[BlockIndex])
+                break
+
+    CurState = VerbalMemState.Stim
     TrialCounter = 1
-    for Line in Lines:
-        if STATE_STIM in Line:
-            if CurState != State[STATE_STIM]:
-                raise EndoTransitionError(LineNo, STATE_STIM, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_STIM].append(Line[ColLoc+1:].strip())
-            CurState = State[STATE_ABST]
-        elif STATE_ABST in Line:
-            if CurState != State[STATE_ABST]:
-                raise EndoTransitionError(LineNo, STATE_ABST, StateNames[CurState])
-            ColLoc = Line.find(":")
-            tmp = Line[ColLoc+1:].strip()
+    for Pairs in DataLines:
+        if CurState == VerbalMemState.Stim:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            CurState = VerbalMemState.Abst
+        elif CurState == VerbalMemState.Abst:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            tmp = Pairs[0][ColLoc+1:].strip()
             if tmp == "a":
-                Trials[TRIALS_IDEA].append("Abstract")
+                Trials[CurState.value].append("Abstract")
             elif tmp == "c":
-                Trials[TRIALS_IDEA].append("Concrete")
+                Trials[CurState.value].append("Concrete")
             else:
-                raise EndoVerbalParseError("* * * UNEXPECTED IDEA: {} * * *".format(tmp))
-            CurState = State[STATE_CASE]
-        elif STATE_CASE in Line:
-            if CurState != State[STATE_CASE]:
-                raise EndoTransitionError(LineNo, STATE_CASE, StateNames[CurState])
-            ColLoc = Line.find(":")
-            tmp = Line[ColLoc+1:].strip()
+                raise EndoParseError("* * * UNEXPECTED IDEA: {} * * *".format(tmp))
+            CurState = VerbalMemState.Case
+        elif CurState == VerbalMemState.Case:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            tmp = Pairs[0][ColLoc+1:].strip()
             if tmp == "l":
-                Trials[TRIALS_CASE].append("Lower")
+                Trials[CurState.value].append("Lower")
             elif tmp == "u":
-                Trials[TRIALS_CASE].append("Upper")
+                Trials[CurState.value].append("Upper")
             else:
-                raise EndoVerbalParseError("* * * UNEXPECTED CASE: {} * * *".format(tmp))
-            CurState = State[STATE_ONSET]
-        elif STATE_ONSET in Line:
-            if CurState != State[STATE_ONSET]:
-                raise EndoTransitionError(LineNo, STATE_ONSET, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_ONSET].append((float(Line[ColLoc+1:].strip()) - BaselineTime) / 1000)
-            CurState = State[STATE_RT]
-        elif STATE_RT in Line:
-            if CurState != State[STATE_RT]:
-                raise EndoTransitionError(LineNo, STATE_RT, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_RT].append(float(Line[ColLoc+1:].strip()) / 1000)
-            CurState = State[STATE_RESP]
-        elif STATE_RESP in Line:
-            if CurState != State[STATE_RESP]:
-                raise EndoTransitionError(LineNo, STATE_RESP, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_RESP].append(int(Line[ColLoc+1:].strip()))
-            CurState = State[STATE_CRESP]
-        elif STATE_CRESP in Line:
-            if CurState != State[STATE_CRESP]:
-                raise EndoTransitionError(LineNo, STATE_CRESP, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_CRESP].append(int(Line[ColLoc+1:].strip()))
-            CurState = State[STATE_DUR]
-        elif STATE_DUR in Line:
-            if CurState != State[STATE_DUR]:
-                raise EndoTransitionError(LineNo, STATE_DUR, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_DUR].append(float(Line[ColLoc+1:].strip()) / 1000)
-            CurState = State[STATE_FIX_ONSET]
-        elif STATE_FIX_ONSET in Line:
-            if CurState != State[STATE_FIX_ONSET]:
-                raise EndoTransitionError(LineNo, STATE_FIX_ONSET, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_FIX_ONSET].append((float(Line[ColLoc+1:].strip()) - BaselineTime) / 1000)
-            Trials[TRIALS_TRIAL_NUM].extend([TrialCounter] * 9)
-            CurState = State[STATE_STIM]
-            BlockTrialCounter += 1
-        elif STATE_RUN_LISTS in Line:
-            if CurState != State[STATE_STIM]:
-                raise EndoTransitionError(LineNo, STATE_RUN_LISTS, StateNames[CurState])
-            ColLoc = Line.find(":")
-            Trials[TRIALS_BLOCK_NUM].extend([int(Line[ColLoc+1:].strip())] * BlockTrialCounter)
-            BlockTrialCounter = 0
-            CurState = State[STATE_STIM]
-        LineNo += 1
+                raise EndoParseError("* * * UNEXPECTED CASE: {} * * *".format(tmp))
+            CurState = VerbalMemState.Onset
+        elif CurState == VerbalMemState.Onset:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append((float(Pairs[0][ColLoc+1:].strip()) - BaselineTime) / 1000)
+            CurState = VerbalMemState.Rt
+        elif CurState == VerbalMemState.Rt:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(float(Pairs[0][ColLoc+1:].strip()) / 1000)
+            CurState = VerbalMemState.Resp
+        elif CurState == VerbalMemState.Resp:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
+            CurState = VerbalMemState.Cresp
+        elif CurState == VerbalMemState.Cresp:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
+            CurState = VerbalMemState.Dur
+        elif CurState == VerbalMemState.Dur:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(float(Pairs[0][ColLoc+1:].strip()) / 1000)
+            CurState = VerbalMemState.FixOnset
+        elif CurState == VerbalMemState.FixOnset:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append((float(Pairs[0][ColLoc+1:].strip()) - BaselineTime) / 1000)
+            CurState = VerbalMemState.RunLists
+        elif CurState == VerbalMemState.RunLists:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[VerbalMemState.RunLists.value].append(int(Pairs[0][ColLoc+1:].strip()))
+            Trials[VerbalMemState.TrialNum.value].append(TrialCounter)
+            TrialCounter += 1
+            CurState = VerbalMemState.Stim
+
+    if CurState != VerbalMemState.Stim:
+        raise EndoParseError("Bad verbal Termination: {} {}".format(
+            DataText[VerbalMemState.Stim], DataText[CurState.value]))
 
     return Trials
 
@@ -248,25 +225,131 @@ def ParseEmotional(FileName, Participant):
     # last offset:     190525
     # total duraiton:  160000
     # 190525 - 30530 = 159995
-    STATE_IMAGE = "MyImage"
-    STATE_ANSWER = "Answer"
-    STATE_IMAGE_ONSET = "ImageDisplay1.OnsetTime"
-    STATE_IMAGE_DURATION = "ImageDisplay1.Duration"
-    STATE_IMAGE_ACC = "ImageDisplay1.ACC"
-    STATE_IMAGE_RT = "ImageDisplay1.RT"
-    STATE_IMAGE_RESP = "ImageDisplay1.RESP"
-    STATE_IMAGE_CRESP = "ImageDisplay1.CRESP"
-    STATE_DELAY_ONSET = "ShortDelay.OnsetTime"
-    STATE_DELAY_DURATION = "ShortDelay.Duration"
-    
-    State = {
-        STATE_IMAGE: 0,
-        STATE_ANSWER: 1,
-        STATE_IMAGE_ONSET: 2,
-    
-    
+    DataText = [
+        "MyImage:",
+        "Answer:",
+        "ImageDisplay1.OnsetTime:",
+        "ImageDisplay1.Duration:",
+        "ImageDisplay1.ACC:",
+        "ImageDisplay1.RT:",
+        "ImageDisplay1.RESP:",
+        "ImageDisplay1.CRESP:",
+        "ShortDelay.OnsetTime:",
+        "ShortDelay.Duration"
+    ]
 
-def main():
+    Trials = [[] for _ in range(EmotionalState.DelayDur + 1)]
+
+    # read all lines
+    Lines = []
+    with open(FileName, 'r') as F:
+        for Line in F:
+            Lines.append(Line)
+
+    # check subject is same as input
+    for Line in Lines:
+        if "Subject:" in Line:
+            ColIdx = Line.find(':')
+            FileParticipant = Line[ColIdx+1:].strip().lstrip('0')
+            break
+    if FileParticipant != Participant:
+        raise EndoParseError(
+            " * * * PARTICIPANT MISMATCH * * *\n" +
+            "File Participant: {}".format(FileParticipant))
+
+    # find baseline time
+    BaselineTime = -1
+    for Line in Lines:
+        if "ImageDisplay1.OnsetTime" in Line:
+            ColIdx = Line.find(':')
+            BaselineTime = float(Line[ColIdx+1:].strip())
+            break
+    if BaselineTime == -1:
+        raise EndoParseError(" * * * ImageDisplay1.OnsetTime NOT FOUND * * *")
+
+    # grab data lines
+    DataLines = []
+    BlockIndex = 0
+    for LineNo, Line in enumerate(Lines):
+        for TextNo, OneText in enumerate(DataText):
+            if OneText in Line:
+                DataLines.append((Line, LineNo+1))
+                break
+
+    CurState = EmotionalState.ImageDis
+    TrialCounter = 1
+    for Pairs in DataLines:
+        if CurState == EmotionalState.ImageDis:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            CurState = EmotionalState.ImageAns
+        elif CurState == EmotionalState.ImageAns:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            CurState = EmotionalState.ImageOnset
+        elif CurState == EmotionalState.ImageOnset:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = (float(Pairs[0][ColLoc+1:]) - BaselineTime) / 1000
+            CurState = EmotionalState.ImageDur
+        elif CurState == EmotinoalState.ImageDur:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = float(Pairs[0][ColLoc+1:])/1000
+            CurState = EmotionalState.ImageAcc
+        elif CurState == EmotionalState.ImageAcc:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = int(Pairs[0][ColLoc+1:])
+            CurState = EmotionalState.ImageRt
+        elif CurState == EmotionalState.ImageRt:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = float(Pairs[0][ColLoc+1:])/1000
+            CurState = EmotionalState.ImageResp
+        elif CurState == EmotionalState.ImageResp:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = int(Pairs[0][ColLoc+1:])/1000
+            CurState = EmotionalState.ImageCresp
+        elif CurState == EmotionalState.ImageCresp:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = int(Pais[0][ColLoc+1:])/1000
+            CurState = EmotionalState.DelayOnset
+        elif CurState == EmotionalState.DelayOnset:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = (float(Pairs[0][ColLoc+1:]) - BaselineTime) / 1000
+            CurState = EmotionalState.DelayDur
+        elif CurState == EmotionalState.DelayDur:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = float(Pairs[0][ColLoc+1:])/1000
+            CurState = EmotionalState.ImageDis
+
+    if CurState != EmotionalState.ImageDis:
+        raise EndoParseError("Bad emotional Termination: {} {}".format(
+            DataText[EmotionalState.ImageDis], DataText[CurState.value])
+
+    return Trials
+
+
+    
+    
+def TestVerbalMem():
     try:
         FileName = '/home/heffjos/Documents/ForOthers/Endopoid/EprimeScripts/ConvertedEprime/I00020/VerbalMemA/endopoid_VerbalMemA_Run1-20-1.txt'
         Participant = '20'
@@ -275,8 +358,11 @@ def main():
         print("LineNo:    {}\n".format(err.LineNo) +
               "Found :    {}\n".format(err.FoundStr) +
               "Expected : {}".format(err.ExpectedStr))
-    except EndoVerbalParseError as err:
+    except EndoParseError as err:
         print("{}".format(err.Message))
+    except:
+        print("Unexpected error")
+        raise
 
     return Trials
     
