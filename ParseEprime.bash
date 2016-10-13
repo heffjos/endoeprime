@@ -30,5 +30,18 @@ do
         fi
     done
 done
+
+# now parse eprime to csv
+for OneDir in ${ConvertedEprime}/*/*
+do
+    Participant=`echo ${OneDir} | awk -F/ '{print $3}'`
+    Task=`echo ${OneDir} | awk -F/ '{print $4}'`
+    echo ${Participant} ${Task}
+    # ParseFiles.py --participant=${Participant} \
+    #     --task==${Task} \
+    #     `echo ${OneDir}/*txt`
+done
+    
+    
         
     
