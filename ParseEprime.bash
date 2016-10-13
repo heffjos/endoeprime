@@ -3,19 +3,14 @@
 OrigEprime=./eprime
 ConvertedEprime=./ConvertedEprime
 
+# conversion from unicode to utf-8
 # Emotinal and Run are sometimes not eparated by an underscore
 for OneTask in Emotional VerbalMemA VerbalMemB VisualMem
 do
     for EprimeFile in ${OrigEprime}/*${OneTask}*txt
     do
         FName=`basename ${EprimeFile}`
-        Subject=`echo ${EprimeFile} | awk -F- '{print $2}'`
-
-        # remove leading zeros
-        for Garbage in 0000 000 00 0
-        do
-            Subject=`echo ${Subject} | sed "s/^${Garbage}//"`
-        done
+        Subject=`echo ${EprimeFile} | awk -F- '{print $2}' | sed "s/^0*//g"`
         Subject=`printf I%05d ${Subject}`
         echo ${Subject}
 
