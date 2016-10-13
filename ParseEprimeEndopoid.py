@@ -154,17 +154,6 @@ def ParseVerbalMem(FileName, Participant):
     if BaselineTime == -1:
         raise EndoVerbelParseError(" * * * myDisDaqs.OnsetTime NOT FOUND * * *")
 
-    # now do all the real work here
-    MYSTIMULUS = 0
-    CONABST = 1
-    MYCASE = 2
-    PROBEONSETTIME = 4
-    PROBERT = 5
-    PROBERESP = 6
-    PROBECRESP = 7
-    PROBEONSETTOONSETTIME = 8
-    FIXATIONONSETTIME = 9
-
     CurState = State[STATE_STIM]
     BlockTrialCounter = 0
     LineNo = 1
@@ -253,6 +242,28 @@ def PrintVerbalMem(OutFile, Trials, Participant):
     pass
 
 def ParseEmotional(FileName, Participant):
+    # let's assume the first trial is "baseline (time = 0)"
+    # this is a reasonable guess because from Run5-037 we have
+    # first onset:      30530
+    # last offset:     190525
+    # total duraiton:  160000
+    # 190525 - 30530 = 159995
+    STATE_IMAGE = "MyImage"
+    STATE_ANSWER = "Answer"
+    STATE_IMAGE_ONSET = "ImageDisplay1.OnsetTime"
+    STATE_IMAGE_DURATION = "ImageDisplay1.Duration"
+    STATE_IMAGE_ACC = "ImageDisplay1.ACC"
+    STATE_IMAGE_RT = "ImageDisplay1.RT"
+    STATE_IMAGE_RESP = "ImageDisplay1.RESP"
+    STATE_IMAGE_CRESP = "ImageDisplay1.CRESP"
+    STATE_DELAY_ONSET = "ShortDelay.OnsetTime"
+    STATE_DELAY_DURATION = "ShortDelay.Duration"
+    
+    State = {
+        STATE_IMAGE: 0,
+        STATE_ANSWER: 1,
+        STATE_IMAGE_ONSET: 2,
+    
     
 
 def main():
