@@ -12,7 +12,7 @@ do
         FName=`basename ${EprimeFile}`
         Subject=`echo ${EprimeFile} | awk -F- '{print $2}' | sed "s/^0*//g"`
         Subject=`printf I%05d ${Subject}`
-        echo ${Subject}
+        echo ${Subject}:${OneTask}
 
         OutDir=${ConvertedEprime}/${Subject}/${OneTask}
         if [ ! -d ${OutDir} ]
