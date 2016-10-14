@@ -97,7 +97,7 @@ def ParseVerbalMem(FileName, Participant, Run):
     Lines = []
     with open(FileName, 'r') as F:
         for Line in F:
-            Lines.append(Line)
+            Lines.append(Line.strip())
 
     # check subject is same as input
     for Line in Lines:
@@ -303,7 +303,7 @@ def ParseEmotional(FileName, Participant):
     Lines = []
     with open(FileName, 'r') as F:
         for Line in F:
-            Lines.append(Line)
+            Lines.append(Line.strip())
 
     # check subject is same as input
     for Line in Lines:
@@ -486,7 +486,7 @@ def ParseVisualMem(FileName, Participant, Run):
     Lines = []
     with open(FileName, 'r') as F:
         for Line in F:
-            Lines.append(Line)
+            Lines.append(Line.strip())
 
     # check subject is same as input
     for Line in Lines:
