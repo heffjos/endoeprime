@@ -52,6 +52,22 @@ class EmotionalState(Enum):
     ImageCrep = 7   # int
     DelayOnset = 8  # float
     DelayDur = 9    # float
+    DelayRt = 10    # float
+    TrialNum = 11   # only used for indexing, int
+    Block = 12      # only used for indexing, int
+
+class VisualMemState(Enum):
+    Task = 0            # int
+    Answer = 1          # int
+    MatchLocation = 2   # str
+    Running = 3         # str
+    ResponseOnset = 4   # float
+    ResponseOffset = 5  # float
+    ResponseAcc = 6     # int
+    ResponseResp = 7    # int
+    ResponseCresp = 8   # int
+    RunLists = 9        # int
+    TrialNum = 10       # only used for indexing trials
     
 
 def ParseVerbalMem(FileName, Participant):
@@ -221,10 +237,13 @@ def PrintVerbalMem(OutFile, Trials, Participant):
 def ParseEmotional(FileName, Participant):
     # let's assume the first trial is "baseline (time = 0)"
     # this is a reasonable guess because from Run5-037 we have
+    # volumes = (80 * 2) = 160
     # first onset:      30530
     # last offset:     190525
     # total duraiton:  160000
-    # 190525 - 30530 = 159995
+    # StartScanner.OnsetTime = 16453
+    # (190525 - 30530)/1000 = 159.995
+    # (190525 - 16453)/1000 = 174.072
     DataText = [
         "MyImage:",
         "Answer:",
@@ -235,10 +254,11 @@ def ParseEmotional(FileName, Participant):
         "ImageDisplay1.RESP:",
         "ImageDisplay1.CRESP:",
         "ShortDelay.OnsetTime:",
-        "ShortDelay.Duration"
+        "ShortDelay.Duration",
+        "SortDelay.RT:"
     ]
 
-    Trials = [[] for _ in range(EmotionalState.DelayDur + 1)]
+    Trials = [[] for _ in range(EmotionalState.DelayRt + 1)]
 
     # read all lines
     Lines = []
@@ -278,6 +298,7 @@ def ParseEmotional(FileName, Participant):
 
     CurState = EmotionalState.ImageDis
     TrialCounter = 1
+    BlockCounter = 1
     for Pairs in DataLines:
         if CurState == EmotionalState.ImageDis:
             if DataText[CurState.value] not in Pairs[0]:
@@ -290,6 +311,10 @@ def ParseEmotional(FileName, Participant):
                 raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
             ColLoc = Pairs[0].find(":")
             Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            if TrialCounter != 1:
+                tmp = Trials[CurState.value]
+                if tmp[TrialCounter-1] != tmp[TrialCounter-2]:
+                    BlockCounter += 1
             CurState = EmotionalState.ImageOnset
         elif CurState == EmotionalState.ImageOnset:
             if DataText[CurState.value] not in Pairs[0]:
@@ -338,13 +363,35 @@ def ParseEmotional(FileName, Participant):
                 raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
             ColLoc = Pairs[0].find(":")
             Trials[CurState.value] = float(Pairs[0][ColLoc+1:])/1000
+            CurState = EmotionalState.DelayRt
+        elif CurState == EmotionalSate.DelayRt:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value])
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value] = float(Pairs[0][ColLoc+1:])/1000
+            Trials[EmotionalState.TrialNum.value] = TrialCounter
+            TrialCounter += 1
+            Trials[EmotionalState.Block.value] = BlockCounter
             CurState = EmotionalState.ImageDis
-
+        
     if CurState != EmotionalState.ImageDis:
         raise EndoParseError("Bad emotional Termination: {} {}".format(
             DataText[EmotionalState.ImageDis], DataText[CurState.value])
 
     return Trials
+
+def ParseVisualMem(FileName, Participant):
+    # first onset: 52768
+    # last onset:  409831
+    # volumes: 180 * 2 = 360s
+    # time difference (409831 - 52768)/1000 = 358.036
+    #
+    # OnsetTime: 283460 - 286435,
+    #            293450 - 296435,
+    #            303457 - 306435,
+    #            313464 - 316335
+    #            
+    # this has period durations and RunLists
 
 
     
