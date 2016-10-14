@@ -2,6 +2,7 @@
 
 OrigEprime=./eprime
 ConvertedEprime=./ConvertedEprime
+Python=/home/heffjos/Documents/anaconda3/bin/python
 
 # conversion from unicode to utf-8
 # Emotinal and Run are sometimes not eparated by an underscore
@@ -36,10 +37,15 @@ for OneDir in ${ConvertedEprime}/*/*
 do
     Participant=`echo ${OneDir} | awk -F/ '{print $3}'`
     Task=`echo ${OneDir} | awk -F/ '{print $4}'`
+
     echo ${Participant} ${Task}
-    # ParseFiles.py --participant=${Participant} \
-    #     --task==${Task} \
-    #     `echo ${OneDir}/*txt`
+
+    ${Python} ./ParseEprimeEndopoid.py --participant=${Participant} \
+        --task=${Task} \
+        --outfile=${OneDir}/${Participant}_${Task}.csv \
+        --infiles `echo ${OneDir}/*txt`
+
+    echo 
 done
     
     
