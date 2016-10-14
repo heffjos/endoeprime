@@ -38,10 +38,10 @@ class VerbalMemState(Enum):
     Stim = 0
     Abst = 1
     Case = 2
-    Onset = 3
-    Rt = 4
-    Resp = 5
-    Cresp = 6
+    Answer = 3     # int, this holds correct response
+    Onset = 4
+    Rt = 5
+    Resp = 6
     Dur = 7
     FixOnset = 8
     RunLists = 9
@@ -49,13 +49,13 @@ class VerbalMemState(Enum):
 
 class EmotionalState(Enum):
     ImageDis = 0    # str
-    ImageAns = 1    # str
-    ImageOnset = 2  # float
-    ImageDur = 3    # float
-    ImageAcc = 4    # int
-    ImageRt = 5     # float
-    ImageResp = 6   # int
-    ImageCresp = 7   # int
+    MyAnswer = 1    # int, this holds the correct response
+    ImageAns = 2    # str
+    ImageOnset = 3  # float
+    ImageDur = 4    # float
+    ImageAcc = 5    # int
+    ImageRt = 6     # float
+    ImageResp = 7   # int
     DelayOnset = 8  # float
     DelayDur = 9    # float
     DelayRt = 10    # float
@@ -64,7 +64,7 @@ class EmotionalState(Enum):
 
 class VisualMemState(Enum):
     Task = 0            # int
-    Answer = 1          # int
+    Answer = 1          # int, this is the correct response
     MatchLocation = 2   # str
     Running = 3         # str
     ResponseOnset = 4   # float
@@ -72,9 +72,8 @@ class VisualMemState(Enum):
     ResponseAcc = 6     # int
     ResponseRt = 7      # float
     ResponseResp = 8    # int
-    ResponseCresp = 9   # int
-    RunLists = 10       # int
-    TrialNum = 11       # only used for indexing trials
+    RunLists = 9        # int
+    TrialNum = 10       # only used for indexing trials
     
 
 def ParseVerbalMem(FileName, Participant, Run):
@@ -215,7 +214,10 @@ def ParseVerbalMem(FileName, Participant, Run):
                 raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
+            if ColLoc == len(Pairs[0]) - 1:
+                Trials[CurState.value].append("NA")
+            else:
+                Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VerbalMemState.Cresp
         elif CurState == VerbalMemState.Cresp:
             if DataText[CurState.value] not in Pairs[0]:
@@ -392,7 +394,10 @@ def ParseEmotional(FileName, Participant):
                 raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:]))
+            if ColLoc == len(Pairs[0]) - 1:
+                Trials[CurState.value].append("NA")
+            else:
+                Trials[CurState.value].append(int(Pairs[0][ColLoc+1:]))
             CurState = EmotionalState.ImageCresp
         elif CurState == EmotionalState.ImageCresp:
             if DataText[CurState.value] not in Pairs[0]:
@@ -613,7 +618,10 @@ def ParseVisualMem(FileName, Participant, Run):
                 raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
+            if ColLoc == len(Pairs[0]) - 1:
+                Trials[CurState.value].append("NA")
+            else:
+                Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VisualMemState.ResponseCresp
         elif CurState == VisualMemState.ResponseCresp:
             if DataText[CurState.value] not in Pairs[0]:
