@@ -677,26 +677,27 @@ def TestVerbalMem():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse endopoid eprime files.')
     parser.add_argument('--task', required=True, help="task for eprime files",
-        choices=["verbal", "visual", "emotional"])
+        choices=["Emotional", "VerbalMemA", "VerbalMemB", "VisualMem"])
     parser.add_argument('--participant', required=True, help="participant name")
     parser.add_argument('--outfile', required=True, help="output csv file")
     parser.add_argument('--infiles', required=True, help="input eprime files",
         nargs='+')
     args = parser.parse_args()
+    Participant = args.participant.lstrip('I0')
 
     try:
         RunTrials = []
-        if args.task == "verbal":
+        if args.task == "VerbalMemA" or args.task == "VerbalMemB":
             for RunNum, OneFile in enumerate(args.infiles, 1):
-                RunTrials.append(ParseVerbalMem(OneFile, args.participant, RunNum))
+                RunTrials.append(ParseVerbalMem(OneFile, Participant, RunNum))
             PrintVerbalMemShort(args.outfile, RunTrials, args.participant)
-        elif args.task == "visual":
+        elif args.task == "VisualMem":
             for RunNum, OneFile in enumerate(args.infiles, 1):
-                RunTrials.append(ParseVisualMem(OneFile, args.participant, RunNum))
+                RunTrials.append(ParseVisualMem(OneFile, Participant, RunNum))
             PrintVisualMemShort(args.outfile, RunTrials, args.participant)
-        elif args.task == "emotional":
+        elif args.task == "Emotional":
             for RunNum, OneFile in enumerate(args.infiles, 1):
-                RunTrials.append(ParseEmotional(OneFile, args.participant))
+                RunTrials.append(ParseEmotional(OneFile, Participant))
             PrintEmotionalShort(args.outfile, RunTrials, args.participant)
     except EndoParseError as err:
         print(" * * * PARSE ERROR * * *\n" 
