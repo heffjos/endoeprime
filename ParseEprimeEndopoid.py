@@ -59,8 +59,9 @@ class EmotionalState(Enum):
     DelayOnset = 8  # float
     DelayDur = 9    # float
     DelayRt = 10    # float
-    TrialNum = 11   # only used for indexing, int
-    Block = 12      # only used for indexing, int
+    DelayResp = 11  # int
+    TrialNum = 12   # only used for indexing, int
+    Block = 13      # only used for indexing, int
 
 class VisualMemState(Enum):
     Task = 0            # int
@@ -79,16 +80,18 @@ class VisualMemState(Enum):
 def ParseVerbalMem(FileName, Participant, Run):
     TruePeriodDurations = (32000, 44000, 44000, 44000, 44000, 32000)
 
-    DataText = ["myStimulus:",
+    DataText = [
+        "myStimulus:",
         "conAbst:",
         "myCase:",
+        "Answer:",
         "Probe.OnsetTime:",
         "Probe.RT:",
         "Probe.RESP:",
-        "Probe.CRESP:",
         "Probe.OnsetToOnsetTime:",
         "fixation.OnsetTime:",
-        "Run{}Lists:".format(Run)]
+        "Run{}Lists:".format(Run)
+    ]
 
     Trials = [[] for _ in range(VerbalMemState.TrialNum.value + 1)]
 
@@ -194,6 +197,13 @@ def ParseVerbalMem(FileName, Participant, Run):
             else:
                 raise EndoParseError("* * * UNEXPECTED CASE: {} * * *".format(tmp),
                     Participant=Participant, InFile=FileName)
+            CurState = VerbalMemState.Answer
+        elif CurState == VerbalMemState.Answer:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
+                    Participant=Participant, InFile=FileName)
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VerbalMemState.Onset
         elif CurState == VerbalMemState.Onset:
             if DataText[CurState.value] not in Pairs[0]:
@@ -218,13 +228,6 @@ def ParseVerbalMem(FileName, Participant, Run):
                 Trials[CurState.value].append("NA")
             else:
                 Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
-            CurState = VerbalMemState.Cresp
-        elif CurState == VerbalMemState.Cresp:
-            if DataText[CurState.value] not in Pairs[0]:
-                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
-                    Participant=Participant, InFile=FileName)
-            ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VerbalMemState.Dur
         elif CurState == VerbalMemState.Dur:
             if DataText[CurState.value] not in Pairs[0]:
@@ -271,8 +274,8 @@ def PrintVerbalMemShort(OutFile, RunTrials, Participant):
             for Idx in range(len(Trials[0])):
                 print("{},{},{},".format(Participant, RunNum, Trials[10][Idx])
                     + "{},{},{},".format(Trials[9][Idx], Trials[0][Idx], Trials[1][Idx])
-                    + "{},{},{},".format(Trials[2][Idx], Trials[3][Idx], Trials[4][Idx])
-                    + "{},{},{},".format(Trials[5][Idx], Trials[6][Idx], Trials[7][Idx])
+                    + "{},{},{},".format(Trials[2][Idx], Trials[4][Idx], Trials[5][Idx])
+                    + "{},{},{},".format(Trials[6][Idx], Trials[3][Idx], Trials[7][Idx])
                     + "{}".format(Trials[8][Idx]), file=Out)
 
 def ParseEmotional(FileName, Participant):
@@ -287,16 +290,17 @@ def ParseEmotional(FileName, Participant):
     # (190525 - 16453)/1000 = 174.072
     DataText = [
         "MyImage:",
+        "MyAnswer:",
         "Answer:",
         "ImageDisplay1.OnsetTime:",
         "ImageDisplay1.Duration:",
         "ImageDisplay1.ACC:",
         "ImageDisplay1.RT:",
         "ImageDisplay1.RESP:",
-        "ImageDisplay1.CRESP:",
         "ShortDelay.OnsetTime:",
         "ShortDelay.Duration:",
-        "ShortDelay.RT:"
+        "ShortDelay.RT:",
+        "ShortDelay.RESP:"
     ]
 
     Trials = [[] for _ in range(EmotionalState.Block.value + 1)]
@@ -335,7 +339,7 @@ def ParseEmotional(FileName, Participant):
     BlockIndex = 0
     for LineNo, Line in enumerate(Lines):
         for TextNo, OneText in enumerate(DataText):
-            if OneText in Line and "MyAnswer" not in Line:
+            if OneText in Line:
                 DataLines.append((Line, LineNo+1))
                 break
 
@@ -349,6 +353,13 @@ def ParseEmotional(FileName, Participant):
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
             Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            CurState = EmotionalState.MyAnswer
+        elif CurState == EmotionalState.MyAnswer:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
+                    Participant=Participant, InFile=FileName)
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = EmotionalState.ImageAns
         elif CurState == EmotionalState.ImageAns:
             if DataText[CurState.value] not in Pairs[0]:
@@ -398,13 +409,6 @@ def ParseEmotional(FileName, Participant):
                 Trials[CurState.value].append("NA")
             else:
                 Trials[CurState.value].append(int(Pairs[0][ColLoc+1:]))
-            CurState = EmotionalState.ImageCresp
-        elif CurState == EmotionalState.ImageCresp:
-            if DataText[CurState.value] not in Pairs[0]:
-                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
-                    Participant=Participant, InFile=FileName)
-            ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:]))
             CurState = EmotionalState.DelayOnset
         elif CurState == EmotionalState.DelayOnset:
             if DataText[CurState.value] not in Pairs[0]:
@@ -429,6 +433,16 @@ def ParseEmotional(FileName, Participant):
             Trials[EmotionalState.TrialNum.value].append(TrialCounter)
             TrialCounter += 1
             Trials[EmotionalState.Block.value].append(BlockCounter)
+            CurState = EmotionalState.DelayResp
+        elif CurState == EmotionalState.DelayResp:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
+                    Participant=Participant, InFile=FileName)
+            ColLoc = Pairs[0].find(":")
+            if ColLoc == len(Pairs[0]) - 1:
+                Trials[CurState.value].append("NA")
+            else:
+                Trials[CurState.value].append(int(Pairs[0][ColLoc+1:]))
             CurState = EmotionalState.ImageDis
         
     if CurState != EmotionalState.ImageDis:
@@ -445,16 +459,18 @@ def PrintEmotionalShort(OutFile, RunTrials, Participant):
             + "Block,ImageDis,ImageAnswer,"
             + "ImageOnset,ImageDur,ImageAcc,"
             + "ImageRt,ImageResp,ImageCresp,"
-            + "DelayOnset,DelayDur,DelayRt", file=Out)
+            + "DelayOnset,DelayDur,DelayRt,"
+            + "DelayResp", file=Out)
 
         # print out data
         for RunNum, Trials in enumerate(RunTrials, 1):
             for Idx in range(len(Trials[0])):
-                print("{},{},{},".format(Participant, RunNum, Trials[11][Idx])
-                    + "{},{},{},".format(Trials[12][Idx], Trials[0][Idx], Trials[1][Idx])
-                    + "{},{},{},".format(Trials[2][Idx], Trials[3][Idx], Trials[4][Idx])
-                    + "{},{},{},".format(Trials[5][Idx], Trials[6][Idx], Trials[7][Idx])
-                    + "{},{},{}".format(Trials[8][Idx], Trials[9][Idx], Trials[10][Idx]), file=Out)
+                print("{},{},{},".format(Participant, RunNum, Trials[12][Idx])
+                    + "{},{},{},".format(Trials[13][Idx], Trials[0][Idx], Trials[2][Idx])
+                    + "{},{},{},".format(Trials[3][Idx], Trials[4][Idx], Trials[5][Idx])
+                    + "{},{},{},".format(Trials[6][Idx], Trials[7][Idx], Trials[1][Idx])
+                    + "{},{},{}".format(Trials[8][Idx], Trials[9][Idx], Trials[10][Idx])
+                    + "{}".format(Trials[11][Idx]), file=Out)
 
 def ParseVisualMem(FileName, Participant, Run):
     # 21 1
@@ -481,7 +497,6 @@ def ParseVisualMem(FileName, Participant, Run):
         "Response.ACC:",
         "Response.RT:",
         "Response.RESP:",
-        "Response.CRESP:",
         "RunList{}:".format(Run)
     ]
 
@@ -549,7 +564,7 @@ def ParseVisualMem(FileName, Participant, Run):
                     DataLines.append((Line, LineNo+1))
                 else:
                     BlockIndex += 1
-                if TextNo == VisualMemState.ResponseCresp.value:
+                if TextNo == VisualMemState.ResponseResp.value:
                     DataLines.append(BlockLines[BlockIndex])
                 break
 
@@ -622,13 +637,6 @@ def ParseVisualMem(FileName, Participant, Run):
                 Trials[CurState.value].append("NA")
             else:
                 Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
-            CurState = VisualMemState.ResponseCresp
-        elif CurState == VisualMemState.ResponseCresp:
-            if DataText[CurState.value] not in Pairs[0]:
-                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
-                    Participant=Participant, InFile=FileName)
-            ColLoc = Pairs[0].find(":")
-            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VisualMemState.RunLists
         elif CurState == VisualMemState.RunLists:
             if DataText[CurState.value] not in Pairs[0]:
@@ -651,19 +659,19 @@ def PrintVisualMemShort(OutFile, RunTrials, Participant):
     with open(OutFile, "w") as Out:
         # print header first
         print("Participant,Run,TrialNum,"
-            + "BlockNum,Task,Answer,"
-            + "MatchLocation,Running,ResponseOnset,"
-            + "ResponseOffset,ResponseAcc,ResponseRt,"
-            + "ResponseResp,ResponseCresp", file=Out)
+            + "BlockNum,Task,MatchLocation,"
+            + "Running,ResponseOnset,ResponseOffset,"
+            + "ResponseAcc,ResponseRt,ResponseResp,"
+            + "ResponseCresp", file=Out)
 
         # now print out data
         for RunNum, Trials in enumerate(RunTrials, 1):
             for Idx in range(len(Trials[0])):
-                print("{},{},{},".format(Participant, RunNum, Trials[11][Idx])
-                    + "{},{},{},".format(Trials[10][Idx], Trials[0][Idx], Trials[1][Idx])
-                    + "{},{},{},".format(Trials[2][Idx], Trials[3][Idx], Trials[4][Idx])
-                    + "{},{},{},".format(Trials[5][Idx], Trials[6][Idx], Trials[7][Idx])
-                    + "{},{}".format(Trials[8][Idx], Trials[9][Idx]), file=Out)
+                print("{},{},{},".format(Participant, RunNum, Trials[10][Idx])
+                    + "{},{},{},".format(Trials[9][Idx], Trials[0][Idx], Trials[2][Idx])
+                    + "{},{},{},".format(Trials[3][Idx], Trials[4][Idx], Trials[5][Idx])
+                    + "{},{},{},".format(Trials[6][Idx], Trials[7][Idx], Trials[8][Idx])
+                    + "{}".format(Trials[1][Idx]), file=Out)
     
 def TestVerbalMem():
     try:
@@ -723,10 +731,42 @@ if __name__ == "__main__":
         raise
 
 def tmp():
-    print("asdf\n"
-        + "qwerty")
+    DataText = [
+        "MyImage:",
+        "MyAnswer:",
+        "Answer:",
+        "ImageDisplay1.OnsetTime:",
+        "ImageDisplay1.Duration:",
+        "ImageDisplay1.ACC:",
+        "ImageDisplay1.RT:",
+        "ImageDisplay1.RESP:",
+        "ShortDelay.OnsetTime:",
+        "ShortDelay.Duration:",
+        "ShortDelay.RT:",
+        "ShortDelay.RESP:"
+    ]
 
-    for Idx, OneNum in enumerate([0, 1, 2, 3, 4], 1):
-        print("Idx:{} OneNum:{}".format(Idx, OneNum))
-            
+    FileName = "./ConvertedEprime/I00005/Emotional/endopoid_Emotional_Run5-005-1.txt"
 
+    Lines = []
+    with open(FileName) as F:
+        for OneLine in F:
+            Lines.append(OneLine.strip())
+        
+    # grab data lines
+    DataLines = []
+    BlockIndex = 0
+    for LineNo, Line in enumerate(Lines):
+        for TextNo, OneText in enumerate(DataText):
+            if OneText in Line:
+                DataLines.append((Line, LineNo+1))
+                break
+
+    # print to standard output
+    for OneLine in DataLines:
+        print("{}".format(OneLine))
+
+def tmp2():
+    FileName = "./ConvertedEprime/I00005/Emotional/endopoid_Emotional_Run5-005-1.txt"
+    Participant = "5"
+    ParseEmotional(FileName, Participant)
