@@ -28,9 +28,17 @@ do
                 --to-code=utf-8 \
                 --output=${OutDir}/${FName} \
                 ${EprimeFile}
+
+            # correct trial 20 for VerbalMemA
+            if [[ ${OneTask} == VerbalMemA && ${EprimeFile} == *"Run3"* ]]
+            then
+                sed -i -e 's/myCase: 1/myCase: l/g' ${OutDir}/${FName}
+            fi  
         fi
     done
 done
+
+# now correct mislabeled subjects
 
 # now parse eprime to csv
 for OneDir in ${ConvertedEprime}/*/*
