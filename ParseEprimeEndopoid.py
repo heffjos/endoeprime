@@ -181,7 +181,9 @@ def ParseVerbalMem(FileName, Participant, Run):
             elif tmp == "c":
                 Trials[CurState.value].append("Concrete")
             else:
-                raise EndoParseError("* * * UNEXPECTED IDEA: {} * * *".format(tmp),
+                raise EndoParseError("* * * UNEXPECTED IDEA: {} * * *".format(tmp)
+                    + "Trial number: {}".format(TrialCounter),
+                    + "Line number : {}".format(Pairs[1]),
                     Participant=Participant, InFile=FileName)
             CurState = VerbalMemState.Case
         elif CurState == VerbalMemState.Case:
@@ -196,6 +198,8 @@ def ParseVerbalMem(FileName, Participant, Run):
                 Trials[CurState.value].append("Upper")
             else:
                 raise EndoParseError("* * * UNEXPECTED CASE: {} * * *".format(tmp),
+                    + "TrialNumber: {}".format(TrialCounter),
+                    + "Line number : {}".format(Pairs[1]),
                     Participant=Participant, InFile=FileName)
             CurState = VerbalMemState.Answer
         elif CurState == VerbalMemState.Answer:
@@ -719,14 +723,14 @@ if __name__ == "__main__":
         print(" * * * PARSE ERROR * * *\n" 
             + "Participant: {}\n".format(err.Participant)
             + "File       : {}\n".format(err.InFile)
-            + err.Message)
+            + err.Message, file=sys.stderr)
     except EndoTransitionError as err:
         print(" * * * TRANSITION ERROR * * *\n"
             + "Participant: {}\n".format(err.Participant)
             + "File       : {}\n".format(err.InFile)
             + "LinNo      : {}\n".format(err.LineNo)
             + "Found      : {}\n".format(err.FoundStr)
-            + "Expected   : {}".format(err.ExpectedStr))
+            + "Expected   : {}".format(err.ExpectedStr), file=sys.stderr)
     except:
         raise
 
