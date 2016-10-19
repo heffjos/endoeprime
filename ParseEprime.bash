@@ -38,7 +38,14 @@ do
     done
 done
 
-# now correct mislabeled subjects
+# correct mislabeled subjects for all files
+for Mislabeled in I00011
+do
+    for OneFile in ${ConvertedEprime}/${Mislabeled}/*/*txt
+    do  
+        sed -i -e 's/Subject: 009/Subject: 011/g' ${OneFile}
+    done
+done
 
 # now parse eprime to csv
 for OneDir in ${ConvertedEprime}/*/*
