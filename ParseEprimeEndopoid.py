@@ -1,5 +1,6 @@
 from enum import Enum
 import argparse
+import sys
 
 class EndoError(Exception):
     """Base class for exception in this module."""
@@ -181,8 +182,8 @@ def ParseVerbalMem(FileName, Participant, Run):
             elif tmp == "c":
                 Trials[CurState.value].append("Concrete")
             else:
-                raise EndoParseError("* * * UNEXPECTED IDEA: {} * * *".format(tmp)
-                    + "Trial number: {}".format(TrialCounter),
+                raise EndoParseError("* * * UNEXPECTED IDEA: {} * * *\n".format(tmp)
+                    + "Trial number: {}\n".format(TrialCounter)
                     + "Line number : {}".format(Pairs[1]),
                     Participant=Participant, InFile=FileName)
             CurState = VerbalMemState.Case
@@ -197,8 +198,8 @@ def ParseVerbalMem(FileName, Participant, Run):
             elif tmp == "u":
                 Trials[CurState.value].append("Upper")
             else:
-                raise EndoParseError("* * * UNEXPECTED CASE: {} * * *".format(tmp),
-                    + "TrialNumber: {}".format(TrialCounter),
+                raise EndoParseError("* * * UNEXPECTED CASE: {} * * *\n".format(tmp)
+                    + "TrialNumber: {}\n".format(TrialCounter)
                     + "Line number : {}".format(Pairs[1]),
                     Participant=Participant, InFile=FileName)
             CurState = VerbalMemState.Answer
