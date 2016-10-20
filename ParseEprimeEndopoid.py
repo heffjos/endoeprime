@@ -474,7 +474,7 @@ def PrintEmotionalShort(OutFile, RunTrials, Participant):
                     + "{},{},{},".format(Trials[13][Idx], Trials[0][Idx], Trials[2][Idx])
                     + "{},{},{},".format(Trials[3][Idx], Trials[4][Idx], Trials[5][Idx])
                     + "{},{},{},".format(Trials[6][Idx], Trials[7][Idx], Trials[1][Idx])
-                    + "{},{},{}".format(Trials[8][Idx], Trials[9][Idx], Trials[10][Idx])
+                    + "{},{},{},".format(Trials[8][Idx], Trials[9][Idx], Trials[10][Idx])
                     + "{}".format(Trials[11][Idx]), file=Out)
 
 def ParseVisualMem(FileName, Participant, Run):
