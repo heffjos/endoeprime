@@ -15,17 +15,45 @@ MDF <- Data %>%
     Onset=ImageOnset[1], 
     Duration=sum(ImageDur+DelayDur)
   ) %>%
-  mutate(TypeNum=ifelse(Type == "Neutral", 1, NA),
-    TypeNum=ifelse(Type == "Negative", 2, TypeNum))
+  mutate(ConNum=ifelse(Type == "Neutral", 1, NA),
+    CondNum=ifelse(Type == "Negative", 2, Type))
 
 names(MDF)[1] <- "#Participant"
 write.csv(MDF, file="MDF_Emotional.csv", quote=F, row.names=F)
 
-Summary <- Data %>%
+RunSummary <- Data %>%
   group_by(Participant, Run) %>%
   summarize(Acc=sum(ImageAcc)/n(),
-    Rt=sum(ImageRt)/n(),
-    CorrectRt=sum(ImageRt[ImageAcc==1])/sum(ImageAcc==1),
-    IncorrectRt=sum(ImageRt[ImageAcc==0])/sum(ImageAcc==0))
-    
-    
+    AllRt=sum(ImageRt)/n(),
+    CorrectRt=sum(ImageRt[ImageAcc == 1])/sum(ImageAcc == 1),
+    IncorrectRt=sum(ImageRt[ImageAcc == 0])/sum(ImageAcc == 0),
+    NeutralAcc=sum(ImageAcc[ImageAnswer == "Neutral"])/sum(ImageAnswer == "Neutral"),
+    NegativeAcc=sum(ImageAcc[ImageAnswer == "Negative"])/sum(ImageAnswer == "Negative"),
+    NeutralRt=sum(ImageRt[ImageAnswer == "Neutral" & ImageAcc == 1])/sum(ImageAnswer == "Neutral" & ImageAcc == 1),
+    NegativeRt=sum(ImageRt[ImageAnswer == "Negative" & ImageAcc == 1])/sum(ImageAnswer == "Negative" & ImageAcc == 1)
+  )
+
+write.csv(RunSummary, file="EmotionRunSummary.csv", quote=F, row.names=F)
+
+ParSummary <- Data %>%
+  group_by(Participant) %>%
+  summarize(Acc=sum(ImageAcc)/n(),
+    AllRt=sum(ImageRt)/n(),
+    CorrectRt=sum(ImageRt[ImageAcc == 1])/sum(ImageAcc == 1),
+    IncorrectRt=sum(ImageRt[ImageAcc == 0])/sum(ImageAcc == 0),
+    NeutralAcc=sum(ImageAcc[ImageAnswer == "Neutral"])/sum(ImageAnswer == "Neutral"),
+    NegativeAcc=sum(ImageAcc[ImageAnswer == "Negative"])/sum(ImageAnswer == "Negative"),
+    NeutralRt=sum(ImageRt[ImageAnswer == "Neutral" & ImageAcc == 1])/sum(ImageAnswer == "Neutral" & ImageAcc == 1),
+    NegativeRt=sum(ImageRt[ImageAnswer == "Negative" & ImageAcc == 1])/sum(ImageAnswer == "Negative" & ImageAcc == 1)
+  )
+
+write.csv(ParSummary, file="EmotionParSummary.csv", quote=F, row.names=F)
+
+# do verbal memory now
+FNamesA <- paste(Participants, "VerbalMemA.csv", sep="_")
+FNamesA <- file.path(Converted, Participants, "VerbalMemA", FNamesA)
+FNamesB <- paste(Participants, "VerbalMemB.csv", sep="_")
+FNamesB <- file.path(Converted, Participants, "VerbalMemB", FNamesB)
+ParFiles <- data.frame(Dirs=file.path(Converted, Participants), VerbalMemType=NA) 
+#   mutate(VerbalMemType[file.exists(FNamesA)]="A",
+#     VerbalMemType[file.exists(FNamesB)]="B")
