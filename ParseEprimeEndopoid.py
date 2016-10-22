@@ -139,7 +139,7 @@ def ParseVerbalMem(FileName, Participant, Run):
             BaselineTime = float(Line[ColIdx+1:].strip())
             break
     if BaselineTime == -1:
-        raise EndoVerbelParseError(" * * * myDisDaqs.OnsetTime NOT FOUND * * *",
+        raise EndoVerbalParseError(" * * * myDisDaqs.OnsetTime NOT FOUND * * *",
             Participant=Participant, InFile=FileName)
 
     # grab block lines  
