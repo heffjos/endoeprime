@@ -37,16 +37,18 @@ class EndoTransitionError(EndoError):
 
 class VerbalMemState(Enum):
     Stim = 0
-    Abst = 1
-    Case = 2
-    Answer = 3     # int, this holds correct response
-    Onset = 4
-    Rt = 5
-    Resp = 6
-    Dur = 7
-    FixOnset = 8
-    RunLists = 9
-    TrialNum = 10  # only used for indexing trials
+    Condition = 1
+    Abst = 2
+    Case = 3
+    Answer = 4     # int, this holds correct response
+    Onset = 5
+    Acc = 6
+    Rt = 7
+    Resp = 8
+    Dur = 9
+    FixOnset = 10
+    RunLists = 11
+    TrialNum = 12  # only used for indexing trials
 
 class EmotionalState(Enum):
     ImageDis = 0    # str
@@ -83,10 +85,12 @@ def ParseVerbalMem(FileName, Participant, Run):
 
     DataText = [
         "myStimulus:",
+        "instructText:",
         "conAbst:",
         "myCase:",
         "Answer:",
         "Probe.OnsetTime:",
+        "Probe.ACC:",
         "Probe.RT:",
         "Probe.RESP:",
         "Probe.OnsetToOnsetTime:",
@@ -147,18 +151,32 @@ def ParseVerbalMem(FileName, Participant, Run):
         raise EndoParseError("* * * BlockLines list EMPTY * * *",
             Participant=Participant, InFile=FileName)
 
+    # grab condtitions
+    CondLines = []
+    for LineNo, Line in enumerate(Lines):
+        if "instructText:" in Line:
+            CondLines.append((Line, LineNo+1))
+    if not CondLines:
+        raise EndoParseError("* * * Conditions list EMPTY * * *",
+            Participant=Participant, InFile=FileName)
+
     # grab data lines
     DataLines = []
     BlockIndex = 0
+    ConditionIndex = 0
     for LineNo, Line in enumerate(Lines):
         for TextNo, OneText in enumerate(DataText):
             if OneText in Line:
-                if TextNo != VerbalMemState.RunLists.value:
-                    DataLines.append((Line, LineNo+1))
-                else:
+                if TextNo == VerbalMemState.RunLists.value:
                     BlockIndex += 1
-                if TextNo == VerbalMemState.FixOnset.value:
-                    DataLines.append(BlockLines[BlockIndex])
+                elif TextNo == VerbalMemState.Condition.value:
+                    ConditionIndex += 1
+                else:
+                    DataLines.append((Line, LineNo+1))
+                    if TextNo == VerbalMemState.FixOnset.value:
+                        DataLines.append(BlockLines[BlockIndex])
+                    elif TextNo == VerbalMemState.Stim.value:
+                        DataLines.append(CondLines[ConditionIndex])
                 break
 
     CurState = VerbalMemState.Stim
@@ -170,6 +188,20 @@ def ParseVerbalMem(FileName, Participant, Run):
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
             Trials[CurState.value].append(Pairs[0][ColLoc+1:].strip())
+            CurState = VerbalMemState.Condition
+        elif CurState == VerbalMemState.Condition:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
+                    Participant=Participant, InFile=FileName)
+            CondName = Pairs[0].split()[1]
+            if CondName == "Abstract":
+                Trials[CurState.value].append("Idea")
+            elif CondName == "Lower":
+                Trials[CurState.value].append("Case")
+            else:
+                raise EndoParseError("Invalid conditon: {}, lineno: {}".
+                    format(CondName, Pairs[1]), 
+                    Participant=Participant, InFile=FileName)
             CurState = VerbalMemState.Abst
         elif CurState == VerbalMemState.Abst:
             if DataText[CurState.value] not in Pairs[0]:
@@ -216,6 +248,13 @@ def ParseVerbalMem(FileName, Participant, Run):
                     Participant=Participant, InFile=FileName)
             ColLoc = Pairs[0].find(":")
             Trials[CurState.value].append((float(Pairs[0][ColLoc+1:].strip()) - BaselineTime) / 1000)
+            CurState = VerbalMemState.Acc
+        elif CurState == VerbalMemState.Acc:
+            if DataText[CurState.value] not in Pairs[0]:
+                raise EndoTransitionError(Pairs[1], Pairs[0], DataText[CurState.value],
+                    Participant=Participant, InFile=FileName)
+            ColLoc = Pairs[0].find(":")
+            Trials[CurState.value].append(int(Pairs[0][ColLoc+1:].strip()))
             CurState = VerbalMemState.Rt
         elif CurState == VerbalMemState.Rt:
             if DataText[CurState.value] not in Pairs[0]:
@@ -265,23 +304,53 @@ def ParseVerbalMem(FileName, Participant, Run):
 
     return Trials
 
-def PrintVerbalMemShort(OutFile, RunTrials, Participant):
+def PrintVerbalMemShort(OutFile, RunTrials, Participant, Task):
     with open(OutFile, 'w') as Out:
         # print header
-        print("Participant,Run,TrialNum," 
-              + "Block,Stimulus,Idea," 
-              + "Case,Onset,RT," 
-              + "Response,CResponse,TrialDuration,"
-              + "FixOnset", file=Out)
+        print("Participant,"     # 1
+              "VerbalType,"     # 2
+              "Run,"     # 3
+              "TrialNum,"     # 4
+              "Block,"     # 5
+              "BlockType,"     # 6
+              "Stimulus,"     # 7
+              "Idea,"     # 8
+              "Case,"     # 9
+              "Onset,"     # 10
+              "Acc,"     # 11
+              "RT,"     # 12
+              "Response,"     # 13
+              "CResponse,"     # 14
+              "TrialDuration,"     # 15
+              "FixOnset", file=Out)     # 16
+
+        if Task == "VerbalMemA":
+            Type = "A"
+        elif Task == "VerbalMemB":
+            Type = "B"
+        else:
+            # this case should never happen
+            raise EndoError()
 
         # print out data
         for RunNum, Trials in enumerate(RunTrials, 1):
             for Idx in range(len(Trials[0])):
-                print("{},{},{},".format(Participant, RunNum, Trials[10][Idx])
-                    + "{},{},{},".format(Trials[9][Idx], Trials[0][Idx], Trials[1][Idx])
-                    + "{},{},{},".format(Trials[2][Idx], Trials[4][Idx], Trials[5][Idx])
-                    + "{},{},{},".format(Trials[6][Idx], Trials[3][Idx], Trials[7][Idx])
-                    + "{}".format(Trials[8][Idx]), file=Out)
+                print("{},".format(Participant)   #1
+                      + "{},".format(Type)   #2
+                      + "{},".format(RunNum)   #3
+                      + "{},".format(Trials[12][Idx])   #4
+                      + "{},".format(Trials[11][Idx])   #5
+                      + "{},".format(Trials[1][Idx])   #6
+                      + "{},".format(Trials[0][Idx])   #7
+                      + "{},".format(Trials[2][Idx])   #8
+                      + "{},".format(Trials[3][Idx])   #9
+                      + "{},".format(Trials[5][Idx])   #10
+                      + "{},".format(Trials[6][Idx])   #11
+                      + "{},".format(Trials[7][Idx])   #12
+                      + "{},".format(Trials[8][Idx])   #13
+                      + "{},".format(Trials[4][Idx])   #14
+                      + "{},".format(Trials[9][Idx])   #15
+                      + "{}".format(Trials[10][Idx]), file=Out)   #16
 
 def ParseEmotional(FileName, Participant):
     # let's assume the first trial is "baseline (time = 0)"
@@ -711,7 +780,7 @@ if __name__ == "__main__":
         if args.task == "VerbalMemA" or args.task == "VerbalMemB":
             for RunNum, OneFile in enumerate(args.infiles, 1):
                 RunTrials.append(ParseVerbalMem(OneFile, Participant, RunNum))
-            PrintVerbalMemShort(args.outfile, RunTrials, args.participant)
+            PrintVerbalMemShort(args.outfile, RunTrials, args.participant, args.task)
         elif args.task == "VisualMem":
             for RunNum, OneFile in enumerate(args.infiles, 1):
                 RunTrials.append(ParseVisualMem(OneFile, Participant, RunNum))
