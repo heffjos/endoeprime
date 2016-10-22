@@ -62,6 +62,8 @@ do
 
     echo 
 done
+
+mkdir MasterDataFiles EprimeSummaries
     
     
         
