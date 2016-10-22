@@ -302,6 +302,11 @@ def ParseVerbalMem(FileName, Participant, Run):
             DataText[VerbalMemState.Stim], DataText[CurState.value]),
             Participant=Participant, InFile=FileName)
 
+    # let's do a check for reaction times
+    for i in range(len(Trials[0])):
+        if Trials[VerbalMemState.Resp.value][i] == "NA":
+            Trials[VerbalMemState.Rt.value][i] = "NA"
+
     return Trials
 
 def PrintVerbalMemShort(OutFile, RunTrials, Participant, Task):
@@ -524,6 +529,11 @@ def ParseEmotional(FileName, Participant):
             DataText[EmotionalState.ImageDis], DataText[CurState.value]),
             Participant=Participant, InFile=FileName)
 
+    for i in range(len(Trials[0])):
+        if Trials[EmotionalState.ImageResp.value][i] == "NA":
+            Trials[EmotionalState.ImageRt.value][i] = "NA"
+
+
     return Trials
 
 def PrintEmotionalShort(OutFile, RunTrials, Participant):
@@ -726,6 +736,10 @@ def ParseVisualMem(FileName, Participant, Run):
         raise EndoParseError("Bad visual termination: {} {}".format(
             DataText[VisualMemState.Task], DataText[CurState.value]),
             Participant=Participant, InFile=FileName)
+
+    for i in range(len(Trials[0])):
+        if Trials[VisualMemState.ResponseResp.value][i] == "NA":
+            Trials[VisualMemState.ResponseRt.value][i] = "NA"
 
     return Trials
 
