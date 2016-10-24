@@ -63,7 +63,7 @@ do
     echo 
 done
 
-mkdir MasterDataFiles EprimeSummaries
+mkdir MasterDataFiles EprimeSummaries AvailableRuns
     
     
         
