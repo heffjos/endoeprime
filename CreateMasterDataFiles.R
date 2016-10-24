@@ -74,13 +74,12 @@ Tmp <- MdfTemplate %>%
   filter(Task == "verbal") %>%
   select(Participant, Task, Condition, Run, TimeOnset, DurationTime) %>%
   mutate(CondNum=ifelse(Condition == "AC", 1, NA),
-    CondNum=ifelse(Condition == "UL", 2, CondNum),
-    Type=NA)
+    CondNum=ifelse(Condition == "UL", 2, CondNum))
 Tmp <- rep(list(Tmp), length(FNamesSplit))
 Tmp <- Map(
   function(x, y) {
     x$Participant = y[3]
-    x$Type = ifelse(y[4] == "VerbalMemA", "A", "B")
+    x$Task = y[4]
     x
   }, Tmp, FNamesSplit)
 MDF <- bind_rows(Tmp)
@@ -89,7 +88,8 @@ write.csv(MDF, file="MasterDataFiles/MDF_Verbal.csv", quote=F, row.names=F, na="
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
-  summarize(TotalTrials=n(),
+  summarize(VerbalType=VerbalType[1],
+    TotalTrials=n(),
     NumNoResp=sum(is.na(RT)),
     NumIncorrect=sum(Acc == 0),
     AvgAcc=sum(Acc)/n(),
@@ -107,7 +107,8 @@ write.csv(RunSummary, file="EprimeSummaries/VerbalRunSummary.csv", quote=F, row.
 
 ParticipantSummary <- Data %>%
   group_by(Participant) %>%
-  summarize(TotalTrials=n(),
+  summarize(VerbalType=VerbalType[1],
+    TotalTrials=n(),
     NumNoResp=sum(is.na(RT)),
     NumIncorrect=sum(Acc == 0),
     AvgAcc=sum(Acc)/n(),
