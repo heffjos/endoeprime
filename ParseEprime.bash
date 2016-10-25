@@ -64,6 +64,11 @@ do
 done
 
 mkdir MasterDataFiles EprimeSummaries AvailableRuns
+
+# now do list the available runs, create MDF and summaries
+${Python} ListEndopoidFiles.py
+Rscript CreateMasterDataFile.R
+Rscript CreateSummaries.R
     
     
         
