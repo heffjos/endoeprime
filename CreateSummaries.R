@@ -1,31 +1,11 @@
 library(dplyr)
 library(stringr)
 
-Converted <- "./ConvertedEprime"
-Participants <- list.files(Converted, "I0.+0[^1]$|I0.+[1-9].")
-MdfTemplate <- read.csv("./TaskTemplates.csv")
-
 # do Emotional first
 FNames <- Sys.glob("./ConvertedEprime/*/Emotional/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
-FNamesSplit <- str_split(FNames, "/")
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
-
-Tmp <- MdfTemplate %>%
-  filter(Task == "emotion") %>%
-  select(Participant, Task, Condition, Run, TimeOnset, DurationTime) %>%
-  mutate(CondNum=ifelse(Condition == "Neutral", 1, NA),
-    CondNum=ifelse(Condition == "Negative", 2, CondNum))
-Tmp <- rep(list(Tmp), length(Participants))
-Tmp <- Map(
-  function(x, y) {
-    x$Participant = y[3]
-    x
-  }, Tmp, FNamesSplit)
-MDF <- bind_rows(Tmp)
-names(MDF)[1] <- "#Participant"
-write.csv(MDF, file="MasterDataFiles/MDF_Emotional.csv", quote=F, row.names=F, na="NaN")
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
@@ -66,25 +46,8 @@ write.csv(ParSummary, file="EprimeSummaries/EmotionParSummary.csv", quote=F, row
 # do verbal memory now
 FNames <- Sys.glob("./ConvertedEprime/*/Verbal*/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
-FNamesSplit <- str_split(FNames, "/")
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
-
-Tmp <- MdfTemplate %>%
-  filter(Task == "verbal") %>%
-  select(Participant, Task, Condition, Run, TimeOnset, DurationTime) %>%
-  mutate(CondNum=ifelse(Condition == "AC", 1, NA),
-    CondNum=ifelse(Condition == "UL", 2, CondNum))
-Tmp <- rep(list(Tmp), length(FNamesSplit))
-Tmp <- Map(
-  function(x, y) {
-    x$Participant = y[3]
-    x$Task = y[4]
-    x
-  }, Tmp, FNamesSplit)
-MDF <- bind_rows(Tmp)
-names(MDF)[1] <- "#Participant"
-write.csv(MDF, file="MasterDataFiles/MDF_Verbal.csv", quote=F, row.names=F, na="NaN")
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
@@ -127,25 +90,8 @@ write.csv(ParticipantSummary, file="EprimeSummaries/VerbalParSummary.csv", quote
 # do visual memory now
 FNames <- Sys.glob("./ConvertedEprime/*/VisualMem/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
-FNamesSplit <- str_split(FNames, "/")
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
-
-Tmp <- MdfTemplate %>%
-  filter(Task == "visual") %>%
-  select(Participant, Task, Condition, Run, TimeOnset, DurationTime) %>%
-  mutate(CondNum=ifelse(Condition == "Match", 1, NA),
-    CondNum=ifelse(Condition == "Delay1", 2, CondNum),
-    CondNum=ifelse(Condition == "Delay4", 3, CondNum))
-Tmp <- rep(list(Tmp), length(FNames))
-Tmp <- Map(
-  function(x, y) {
-    x$Participant = y[3]
-    x
-  }, Tmp, FNamesSplit)
-MDF <- bind_rows(Tmp)
-names(MDF)[1] <- "#Participant"
-write.csv(MDF, file="MasterDataFiles/MDF_Visual.csv", quote=F, row.names=F, na="NaN")    
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
