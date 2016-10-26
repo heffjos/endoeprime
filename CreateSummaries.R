@@ -6,6 +6,7 @@ FNames <- Sys.glob("./ConvertedEprime/*/Emotional/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
+write.csv(Data, file="EprimeSummaries/EmotionData.csv", quote=F, row.names=F)
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
@@ -48,6 +49,7 @@ FNames <- Sys.glob("./ConvertedEprime/*/Verbal*/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
+write.csv(Data, file="EprimeSummaries/VerbalData.csv", quote=F, row.names=F)
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
@@ -92,6 +94,7 @@ FNames <- Sys.glob("./ConvertedEprime/*/VisualMem/*csv")
 FNames <- grep("I0.+0[^1]/|I0.+[1-9]./", FNames, value=T)
 Data <- lapply(FNames, read.csv)
 Data <- bind_rows(Data)
+write.csv(Data, file="EprimeSummaries/VisualData.csv", quote=F, row.names=F)
 
 RunSummary <- Data %>%
   group_by(Participant, Run) %>%
